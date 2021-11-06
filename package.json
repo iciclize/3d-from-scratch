@@ -1,0 +1,22 @@
+{
+  "name": "3d-from-scratch",
+  "version": "0.114.514",
+  "description": "3d graphics from scratch",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/live-server": "^1.2.1",
+    "chokidar": "^3.5.2",
+    "live-server": "^1.2.1",
+    "esbuild": "^0.13.12",
+    "typescript": "^4.4.4"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "esbuild src/main.ts --bundle --minify --sourcemap --outfile=public/bundle.js",
+    "watch": "esbuild src/main.ts --bundle --minify --sourcemap --outfile=public/bundle.js --watch"
+  },
+  "type": "module",
+  "author": "@iciclize",
+  "license": "MIT"
+}
