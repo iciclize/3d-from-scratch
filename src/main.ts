@@ -1,4 +1,17 @@
-window.addEventListener("DOMContentLoaded", () => {
+import { Vec3d, Mat4x4, Triangle } from './primitives';
+import { Model } from './model';
+import cubeData from './cube-obj';
+import modelData from './cat-obj';
+import { start } from 'live-server';
+
+let mouseX = 0, mouseY = 0;
+
+window.addEventListener('mousemove', (e) => {
+  mouseX = e.x;
+  mouseY = e.y;
+});
+
+window.addEventListener('DOMContentLoaded', () => {
   const canvas: HTMLCanvasElement = document.getElementById(
     "canvas"
   ) as HTMLCanvasElement;
@@ -6,66 +19,58 @@ window.addEventListener("DOMContentLoaded", () => {
   app.run();
 });
 
-class Vec4 {
-  constructor(
-    public x: number,
-    public y: number,
-    public z: number,
-    public w = 1
-  ) {}
+
+const camera = (location: Vec3d, target: Vec3d, up: Vec3d) => {
+  const zAxis = Vec3d.sub(location, target).norm();
+  const xAxis = Vec3d.cross(up, zAxis).norm();
+  const yAxis = Vec3d.cross(zAxis, xAxis);
+  // Vec3d.printVector('xAxis', xAxis);
+  // Vec3d.printVector('yAxis', yAxis);
+  // Vec3d.printVector('zAxis', zAxis);
+
+  const translate = new Mat4x4(
+    1, 0, 0, -location.x,
+    0, 1, 0, -location.y,
+    0, 0, 1, -location.z,
+    0, 0, 0, 1
+  );
+
+  const axis = new Mat4x4(
+    xAxis.x, xAxis.y, xAxis.z, 0,
+    yAxis.x, yAxis.y, yAxis.z, 0,
+    zAxis.x, zAxis.y, zAxis.z, 0,
+    0, 0, 0, 1
+  );
+
+  return Mat4x4.mult(axis, translate);
 }
 
-class Mat4x4 {
-  constructor(
-    public m11 = 1, public m12 = 0, public m13 = 0, public m14 = 0,
-    public m21 = 0, public m22 = 1, public m23 = 0, public m24 = 0,
-    public m31 = 0, public m32 = 0, public m33 = 1, public m34 = 0,
-    public m41 = 0, public m42 = 0, public m43 = 0, public m44 = 1
-  ) {}
-
-  static mult(a: Mat4x4, b: Mat4x4) {
-    new Mat4x4(
-      a.m11 * b.m11 + a.m12 + b.m21 + a.m13 * b.m31 + a.m14 * b.m41,
-      a.m11 * b.m12 + a.m12 + b.m22 + a.m13 * b.m32 + a.m14 * b.m42,
-      a.m11 * b.m13 + a.m12 + b.m23 + a.m13 * b.m33 + a.m14 * b.m43,
-      a.m11 * b.m14 + a.m12 + b.m24 + a.m13 * b.m34 + a.m14 * b.m44,
-
-      a.m21 * b.m11 + a.m22 + b.m21 + a.m23 * b.m31 + a.m24 * b.m41,
-      a.m21 * b.m12 + a.m22 + b.m22 + a.m23 * b.m32 + a.m24 * b.m42,
-      a.m21 * b.m13 + a.m22 + b.m23 + a.m23 * b.m33 + a.m24 * b.m43,
-      a.m21 * b.m14 + a.m22 + b.m24 + a.m23 * b.m34 + a.m24 * b.m44,
-
-      a.m31 * b.m11 + a.m32 + b.m21 + a.m33 * b.m31 + a.m34 * b.m41,
-      a.m31 * b.m12 + a.m32 + b.m22 + a.m33 * b.m32 + a.m34 * b.m42,
-      a.m31 * b.m13 + a.m32 + b.m23 + a.m33 * b.m33 + a.m34 * b.m43,
-      a.m31 * b.m14 + a.m32 + b.m24 + a.m33 * b.m34 + a.m34 * b.m44,
-
-      a.m41 * b.m11 + a.m42 + b.m21 + a.m43 * b.m31 + a.m44 * b.m41,
-      a.m41 * b.m12 + a.m42 + b.m22 + a.m43 * b.m32 + a.m44 * b.m42,
-      a.m41 * b.m13 + a.m42 + b.m23 + a.m43 * b.m33 + a.m44 * b.m43,
-      a.m41 * b.m14 + a.m42 + b.m24 + a.m43 * b.m34 + a.m44 * b.m44
-    );
-  }
-
-  static multVec(m: Mat4x4, v: Vec4) {
-    return new Vec4(
-      m.m11 * v.x + m.m12 * v.y + m.m13 * v.z + m.m14 * v.w,
-      m.m21 * v.x + m.m22 * v.y + m.m23 * v.z + m.m24 * v.w,
-      m.m31 * v.x + m.m32 * v.y + m.m33 * v.z + m.m34 * v.w,
-      m.m41 * v.x + m.m42 * v.y + m.m43 * v.z + m.m44 * v.w
-    );
-  }
+const showPoints = (str: string, vertices: Vec3d[]) => {
+  console.log(str);
+  vertices.forEach((p, i) => {
+    console.log(`p${i}: { x: ${p.x.toFixed(3)}, y: ${p.y.toFixed(3)}, z: ${p.z.toFixed(3)} }`);
+  });
+  console.log();
 }
 
 class App {
   canvas: HTMLCanvasElement;
   context2d: CanvasRenderingContext2D;
+  polygons: Triangle[] = [];
 
   constructor(canvas: HTMLCanvasElement) {
     canvas.width = 364;
     canvas.height = 364;
     this.canvas = canvas;
     this.context2d = canvas.getContext("2d")!;
+    const model = new Model(modelData);
+    const polygons = model._polygons.map((polygon) => {
+      const tri = polygon.map((v) => {
+        return new Vec3d(v.vertex[0], v.vertex[1], v.vertex[2], 1);
+      });
+      return tri as Triangle;
+    });
+    this.polygons = polygons;
   }
 
   run() {
@@ -80,68 +85,129 @@ class App {
 
   draw() {
     const ctx = this.context2d;
-    const halfW = ctx.canvas.width / 2;
-    const halfH = ctx.canvas.height / 2;
-
-    this.theta += 0.2;
-    const t = this.theta;
-
-    let localVertices = [
-      new Vec4(0, 0, 0),
-      new Vec4(2, 1, 0),
-      new Vec4(1, 2, 1),
-    ];
-
-    const matRotateY = new Mat4x4(
-      Math.cos(t), 0, -Math.sin(t), 0,
-      0, 1, 0, 0,
-      Math.sin(t), 0, Math.sin(t), 0,
-      0, 0, 0, 1
-    );
-
-    localVertices = localVertices.map((p) => {
-      return Mat4x4.multVec(matRotateY, p);
-    });
-
-    const world = localVertices.map((p) => {
-      return new Vec4(p.x, p.y, p.z);
-    });
-
-    const view = world.map((p) => {
-      // lookAt
-      return new Vec4(p.x, p.y, p.z + 3);
-    });
-
-    const projection = view.map((p) => {
-      return new Vec4(p.x / p.z, p.y / p.z, p.z);
-    });
-
-    const screenPoints = projection.map((p) => {
-      return new Vec4(halfW * p.x + halfW, halfH * -p.y + halfH, 0);
-    });
 
     ctx.beginPath();
     ctx.fillStyle = "blue";
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.closePath();
 
-    ctx.strokeStyle = "white";
-    ctx.beginPath();
-    ctx.moveTo(screenPoints[0].x, screenPoints[0].y);
-    screenPoints.forEach((p) => {
-      ctx.lineTo(p.x, p.y);
-    });
-    ctx.closePath();
+    this.theta += 0.05;
+    const t = this.theta;
 
-    screenPoints.forEach((p) => {
-      ctx.fillStyle = "white";
-      ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI);
-      ctx.fill();
+    const matRotateY = new Mat4x4(
+      Math.cos(t), 0, -Math.sin(t), 0,
+      0, 1, 0, 0,
+      Math.sin(t), 0, Math.cos(t), 0,
+      0, 0, 0, 1
+    );
+
+    const ratio = 0.05;
+    const scale = new Mat4x4(
+      ratio, 0, 0, 0,
+      0, ratio, 0, 0,
+      0, 0, ratio, 0,
+      0, 0, 0, 1
+    );
+
+    this.polygons.forEach((polygon) => {
+
+      // rotate local
+      const model = polygon.map((p) => {
+        const scaled = Mat4x4.multVec(scale, p)
+        const r = Mat4x4.multVec(matRotateY, scaled);
+        return r;
+      });
+
+      const world = model.map((p) => {
+        const translate = new Mat4x4(
+          1, 0, 0, 0,
+          0, 1, 0, 0,
+          0, 0, 1, 5,
+          0, 0, 0, 1
+        );
+        return Mat4x4.multVec(translate, p);
+      });
+
+      // showPoints('world', world);
+
+      const camPos = new Vec3d(-4 + mouseX / 100, -5 + mouseY * 4 / 100, 30);
+      const lookat = new Vec3d(0, 10, 0);
+      const up = new Vec3d(0, 1, 0);
+      const camMat = camera(camPos, lookat, up);
+      Mat4x4.printMatrix('camera', camMat);
+
+      const view = world.map((p) => {
+        // lookAt
+        return Mat4x4.multVec(camMat, p)
+      });
+
+      // showPoints('view', view);
+
+      const near = -1;
+      const far = -65;
+      const fov = 75 / 180 * Math.PI;
+
+      const screenW = 364;
+      const screenH = 364;
+      const aspectRatio = screenW / screenH;
+
+      const halfWidth = Math.tan(fov / 2) * near;
+      const halfHeight = halfWidth / aspectRatio;
+
+      const projection = view.map((p, i) => {
+        const perspective = new Mat4x4(
+          near / halfWidth, 0, 0, 0,
+          0, near / halfHeight, 0, 0,
+          0, 0, (far + near) / (far - near), (-2 * far * near) / (far - near),
+          0, 0, -1, 0
+        );
+        const proj = Mat4x4.multVec(perspective, p);
+        // console.log(`pre p${i}: { x: ${proj.x.toFixed(3)}, y: ${proj.y.toFixed(3)}, z: ${proj.z.toFixed(3)}, w: ${proj.w.toFixed(3)} }`);
+        return new Vec3d(proj.x / proj.w, proj.y / proj.w, proj.z / proj.w, 1);
+      });
+
+      // showPoints('projection', projection);
+
+      const screenHalfW = ctx.canvas.width / 2;
+      const screenHalfH = ctx.canvas.height / 2;
+      const screenPoints = projection.filter((p) => {
+        if (p.x < -1 || 1 < p.x) return false;
+        if (p.y < -1 || 1 < p.y) return false;
+        if (p.z < -1 || 1 < p.z) return false;
+        return true;
+      }).map((p) => {
+        return new Vec3d(screenHalfW * p.x + screenHalfW, screenHalfH * -p.y + screenHalfH, 0);
+      });
+
+      // showPoints('screen', screenPoints);
+
+      ctx.strokeStyle = "white";
+      ctx.beginPath();
+      if (screenPoints[0]) {
+        ctx.moveTo(screenPoints[0].x, screenPoints[0].y);
+      }
+      screenPoints.forEach((p) => {
+        ctx.lineTo(p.x, p.y);
+      });
       ctx.closePath();
+      ctx.stroke();
+
+      screenPoints.forEach((p) => {
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.closePath();
+      });
+
     });
 
-    setTimeout(() => {
-      this.draw();
-    }, 33);
+    const animation = true;
+    if (animation) {
+      setTimeout(() => {
+        this.draw();
+      }, 33);
+    }
   }
+
 }

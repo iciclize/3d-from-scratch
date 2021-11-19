@@ -15,9 +15,10 @@ import liveServer from "live-server";
 		// Uses incremental compilation (see `chokidar.on`).
 		incremental: true,
 		// Removes whitespace, etc. depending on `NODE_ENV=...`.
-		minify: true,
+		minify: false,
 		// Bundles JavaScript to (see `entryPoints`).
 		outfile: "public/bundle.js",
+		platform: "node",
 	})
 	// `chokidar` watcher source changes.
 	chokidar
