@@ -6,6 +6,8 @@ type VertexExt = {
   texture: TexVertex,
 }
 export type Polygon = [VertexExt, VertexExt, VertexExt];
+type BindingElem = {v: number, t: number, n: number};
+export type Binding = [BindingElem, BindingElem, BindingElem];
 
 export class Model {
   _name = "";
@@ -13,6 +15,7 @@ export class Model {
   _normals: Vertex[] = [];
   _texVertices: TexVertex[] = [];
   _polygons: Polygon[] = [];
+  _bindings: Binding[] = [];
 
   constructor(rawText: string | null | undefined) {
     if (rawText === null || rawText === undefined) {
@@ -55,22 +58,20 @@ export class Model {
           break;
         }
         case 'f': {
-          const binds = [1, 2, 3].map((i) => {
+          const bindings = [1, 2, 3].map((i) => {
             const vtn = tokens[i].split('/');
             return {
-              v: parseInt(vtn[0]),
-              t: parseInt(vtn[1]),
-              n: parseInt(vtn[2])
+              v: parseInt(vtn[0]) - 1,
+              t: parseInt(vtn[1]) - 1,
+              n: parseInt(vtn[2]) - 1,
             };
-          });
-          const v1i = binds[0].v - 1;
-          const v2i = binds[1].v - 1;
-          const v3i = binds[2].v - 1;
-          const polygon = [v1i, v2i, v3i].map((i) => {
+          }) as Binding;
+          this._bindings.push(bindings);
+          const polygon = bindings.map((b) => {
             const vExt: VertexExt = {
-              vertex: this._vertices[i],
-              normal: this._normals[i],
-              texture: this._texVertices[i],
+              vertex: this._vertices[b.v],
+              normal: this._normals[b.n],
+              texture: this._texVertices[b.t],
             };
             return vExt;
           }) as Polygon;

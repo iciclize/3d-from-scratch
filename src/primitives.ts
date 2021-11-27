@@ -1,5 +1,7 @@
 export type Triangle = [ Vec3d, Vec3d, Vec3d ];
 
+const DEBUG = false;
+
 export class Vec3d {
   constructor(
     public x: number,
@@ -21,15 +23,19 @@ export class Vec3d {
   }
 
   static add(a: Vec3d, b: Vec3d) {
-    return new Vec3d(a.x + b.x, a.y + b.y, a.z + b.z, a.w);
+    return new Vec3d(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
   }
 
   static sub(a: Vec3d, b: Vec3d) {
-    return new Vec3d(a.x - b.x, a.y - b.y, a.z - b.z, a.w);
+    return new Vec3d(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
+  }
+
+  static multScalar(k: number, v: Vec3d) {
+    return new Vec3d(k * v.x, k * v.y, k * v.z, k * v.w);
   }
 
   static inv(v: Vec3d) {
-    return new Vec3d(-v.x, -v.y, -v.z, v.w);
+    return new Vec3d(-v.x, -v.y, -v.z, -v.w);
   }
 
   static dot(a: Vec3d, b: Vec3d) {
@@ -45,6 +51,7 @@ export class Vec3d {
   }
 
   static printVector(str: string, v: Vec3d) {
+    if (!DEBUG) return;
     console.log(`${str}: { x: ${v.x}, y: ${v.y}, z: ${v.z}, w: ${v.w}}`);
   }
 }
@@ -91,10 +98,11 @@ export class Mat4x4 {
   }
 
   static printMatrix(str: string, m: Mat4x4) {
+    if (!DEBUG) return;
     console.log(`${str}:
-  ${m.m11} ${m.m12} ${m.m13} ${m.m14}
-  ${m.m21} ${m.m22} ${m.m23} ${m.m24}
-  ${m.m31} ${m.m32} ${m.m33} ${m.m34}
-  ${m.m41} ${m.m42} ${m.m43} ${m.m44}`);
+  ${m.m11.toFixed(3)} ${m.m12.toFixed(3)} ${m.m13.toFixed(3)} ${m.m14.toFixed(3)}
+  ${m.m21.toFixed(3)} ${m.m22.toFixed(3)} ${m.m23.toFixed(3)} ${m.m24.toFixed(3)}
+  ${m.m31.toFixed(3)} ${m.m32.toFixed(3)} ${m.m33.toFixed(3)} ${m.m34.toFixed(3)}
+  ${m.m41.toFixed(3)} ${m.m42.toFixed(3)} ${m.m43.toFixed(3)} ${m.m44.toFixed(3)}`);
   }
 }
