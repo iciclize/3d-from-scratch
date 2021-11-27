@@ -38,5 +38,12 @@ import liveServer from "live-server";
 		port: 14514,
 		// Uses `public` as the local server folder.
 		root: "public",
+		middleware: [function(req, res, next) {
+			if (req.url == '/favicon.ico') {
+				res.writeHead(200);
+				res.end();
+			}
+			next();
+		}],
 	})
 })()
